@@ -24,6 +24,7 @@ export default function Practice() {
   const [objective, setObjective] = useState<Objective | null>(null);
   const drawingRef = useRef<DrawingState>({ elements: [], appState: {}, files: {} });
   const [showModal, setShowModal] = useState(false);
+  const [revealHidden, setRevealHidden] = useState(false);
   const [ratings, setRatings] = useState({
     clarity: 3,
     accuracy: 3,
@@ -33,6 +34,13 @@ export default function Practice() {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const renderPrompt = (prompt: string) => {
+    if (revealHidden) {
+      return prompt.replace(/\$([^$]*)\$/g, "$1");
+    }
+    return prompt.replace(/\$[^$]*\$/g, "[hidden]");
+  };
 
   useEffect(() => {
     fetchJson<Objective>(apiUrl(`/api/objectives/by-path?path=${encodeURIComponent(objectivePath)}`))
@@ -94,7 +102,14 @@ export default function Practice() {
           <div className="d-flex justify-content-between align-items-start">
             <div>
               <h2 className="mb-2">{objective.path}</h2>
-              <p className="text-muted mb-0">{objective.prompt}</p>
+              <p className="text-muted mb-2">{renderPrompt(objective.prompt)}</p>
+              <Button
+                size="sm"
+                variant={revealHidden ? "outline-warning" : "outline-secondary"}
+                onClick={() => setRevealHidden((prev) => !prev)}
+              >
+                {revealHidden ? "Hide masked text" : "Reveal masked text"}
+              </Button>
             </div>
             <Button onClick={handleOpenModal} variant="primary">
               Submit practice

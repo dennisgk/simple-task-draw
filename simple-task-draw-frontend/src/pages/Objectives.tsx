@@ -8,6 +8,13 @@ function normalizePath(path: string) {
   return path.replace(/^\/+|\/+$/g, "");
 }
 
+function renderMaskedText(text: string, reveal: boolean) {
+  if (reveal) {
+    return text.replace(/\$([^$]*)\$/g, "$1");
+  }
+  return text.replace(/\$[^$]*\$/g, "[hidden]");
+}
+
 export default function Objectives() {
   const params = useParams();
   const rawPath = params["*"] ?? "";
@@ -15,6 +22,7 @@ export default function Objectives() {
   const [objectives, setObjectives] = useState<Objective[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
 
   useEffect(() => {
     fetchJson<Objective[]>(apiUrl("/api/objectives"))
@@ -88,13 +96,22 @@ export default function Objectives() {
                 <h3 className="mb-1">Objective overview</h3>
                 <div className="text-muted">Navigate through the path tree and review detail.</div>
               </div>
-              <Form.Check
-                type="checkbox"
-                id="show-archived"
-                label="Show archived"
-                checked={showArchived}
-                onChange={(event) => setShowArchived(event.target.checked)}
-              />
+              <Stack gap={1} className="align-items-end">
+                <Form.Check
+                  type="checkbox"
+                  id="show-archived"
+                  label="Show archived"
+                  checked={showArchived}
+                  onChange={(event) => setShowArchived(event.target.checked)}
+                />
+                <Form.Check
+                  type="checkbox"
+                  id="show-hidden"
+                  label="Show hidden"
+                  checked={showHidden}
+                  onChange={(event) => setShowHidden(event.target.checked)}
+                />
+              </Stack>
             </div>
 
             {objectiveAtPath ? (
@@ -106,7 +123,7 @@ export default function Objectives() {
                       {objectiveAtPath.status}
                     </Badge>
                   </div>
-                  <div>{objectiveAtPath.prompt}</div>
+                  <div>{renderMaskedText(objectiveAtPath.prompt, showHidden)}</div>
                   <div className="d-flex gap-2">
                     <Button as={Link} to={`/practice/${objectiveAtPath.path}`} size="sm" variant="primary">
                       Practice
