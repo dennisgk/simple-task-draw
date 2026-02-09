@@ -40,25 +40,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static assets (if present) and fall back to index.html for SPA routing.
-if os.path.isdir(STATIC_DIR):
-    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-
-
-@app.get("/{full_path:path}")
-def spa_fallback(full_path: str, request: Request):
-    if request.method != "GET":
-        raise HTTPException(status_code=405, detail="Method not allowed")
-    if os.path.isdir(STATIC_DIR):
-        candidate = os.path.join(STATIC_DIR, full_path)
-        if full_path and os.path.isfile(candidate):
-            return FileResponse(candidate)
-        index_path = os.path.join(STATIC_DIR, "index.html")
-        if os.path.isfile(index_path):
-            return FileResponse(index_path)
-    raise HTTPException(status_code=404, detail="Not found")
-
-
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -480,3 +461,17 @@ def telemetry_overview() -> TelemetryOverview:
         random_objective=random_objective,
         heatmap=heatmap,
     )
+
+
+@app.get("/{full_path:path}")
+def spa_fallback(full_path: str, request: Request):
+    if request.method != "GET":
+        raise HTTPException(status_code=405, detail="Method not allowed")
+    if os.path.isdir(STATIC_DIR):
+        candidate = os.path.join(STATIC_DIR, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        index_path = os.path.join(STATIC_DIR, "index.html")
+        if os.path.isfile(index_path):
+            return FileResponse(index_path)
+    raise HTTPException(status_code=404, detail="Not found")
