@@ -9,15 +9,18 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from contextlib import asynccontextmanager
+from starlette.responses import FileResponse
+from starlette.staticfiles import StaticFiles
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 EXCALIDRAW_DIR = os.path.join(DATA_DIR, "excalidraw")
 DB_PATH = os.path.join(DATA_DIR, "app.db")
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 
 os.makedirs(EXCALIDRAW_DIR, exist_ok=True)
 
@@ -36,6 +39,24 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Serve static assets (if present) and fall back to index.html for SPA routing.
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/{full_path:path}")
+def spa_fallback(full_path: str, request: Request):
+    if request.method != "GET":
+        raise HTTPException(status_code=405, detail="Method not allowed")
+    if os.path.isdir(STATIC_DIR):
+        candidate = os.path.join(STATIC_DIR, full_path)
+        if full_path and os.path.isfile(candidate):
+            return FileResponse(candidate)
+        index_path = os.path.join(STATIC_DIR, "index.html")
+        if os.path.isfile(index_path):
+            return FileResponse(index_path)
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 def utc_now_iso() -> str:
