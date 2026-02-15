@@ -11,7 +11,7 @@ import {
   Stack,
   Table,
 } from "react-bootstrap";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import { apiUrl, fetchJson } from "../api";
 import Heatmap from "../components/Heatmap";
@@ -20,6 +20,13 @@ import { formatDateTime, formatDuration } from "../utils";
 
 function normalizePath(path: string) {
   return path.replace(/^\/+|\/+$/g, "");
+}
+
+function renderMaskedText(text: string, reveal: boolean) {
+  if (reveal) {
+    return text.replace(/\$([^$]*)\$/g, "$1");
+  }
+  return text.replace(/\$[^$]*\$/g, "[hidden]");
 }
 
 type ExcalidrawPayload = {
@@ -38,6 +45,7 @@ export default function Progress() {
   const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [drawing, setDrawing] = useState<ExcalidrawPayload | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -87,7 +95,15 @@ export default function Progress() {
           <Row className="align-items-center g-3">
             <Col lg={7}>
               <h2 className="mb-1">{objective.path}</h2>
-              <p className="text-muted">{objective.prompt}</p>
+              <p className="text-muted">{renderMaskedText(objective.prompt, showHidden)}</p>
+              <div className="d-flex gap-2 mb-3">
+                <Button as={Link} to={`/practice/${objective.path}`} size="sm" variant="primary">
+                  Practice
+                </Button>
+                <Button size="sm" variant="outline-secondary" onClick={() => setShowHidden((prev) => !prev)}>
+                  {showHidden ? "Hide masked text" : "Show masked text"}
+                </Button>
+              </div>
               <div className="d-flex flex-wrap gap-3">
                 <Badge bg="primary">Submissions: {summary.total_submissions}</Badge>
                 <Badge bg="secondary">Avg rating: {summary.avg_rating.toFixed(2)}</Badge>
@@ -120,10 +136,10 @@ export default function Progress() {
                 <td>{formatDateTime(submission.created_at)}</td>
                 <td>{formatDuration(submission.duration_ms)}</td>
                 <td>
-                  {submission.rating_clarity}/5 • {submission.rating_accuracy}/5 • {submission.rating_confidence}/5 •
+                  {submission.rating_clarity}/5 | {submission.rating_accuracy}/5 | {submission.rating_confidence}/5 |
                   {submission.rating_speed}/5
                 </td>
-                <td>{submission.notes || "--"}</td>
+                <td>{submission.notes ? renderMaskedText(submission.notes, showHidden) : "--"}</td>
                 <td>
                   <Button size="sm" variant="outline-primary" onClick={() => handleViewDrawing(submission.id)}>
                     View drawing
